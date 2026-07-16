@@ -1,0 +1,476 @@
+<title>넷플릭스 국가별 컨텐츠 제작 순위</title>
+<style>
+  .viz-root {
+    color-scheme: light;
+    --surface-1:      #fcfcfb;
+    --page-plane:     #f9f9f7;
+    --text-primary:   #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted:     #898781;
+    --gridline:       #e1e0d9;
+    --border:         rgba(11,11,11,0.10);
+    --series-1: #2a78d6; /* blue */
+    --series-2: #008300; /* green */
+    --series-3: #e87ba4; /* magenta */
+    --series-4: #eda100; /* yellow */
+    --series-5: #1baf7a; /* aqua */
+    --series-6: #eb6834; /* orange */
+    --series-7: #4a3aa7; /* violet */
+    --series-8: #e34948; /* red */
+    --series-9: #86b6ef; /* blue tint */
+    --series-10: #8a5a2b; /* brown */
+    --series-etc: #898781; /* muted, aggregate */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .viz-root {
+      color-scheme: dark;
+      --surface-1:      #1a1a19;
+      --page-plane:     #0d0d0d;
+      --text-primary:   #ffffff;
+      --text-secondary: #c3c2b7;
+      --text-muted:     #898781;
+      --gridline:       #2c2c2a;
+      --border:         rgba(255,255,255,0.10);
+      --series-1: #3987e5;
+      --series-2: #008300;
+      --series-3: #d55181;
+      --series-4: #c98500;
+      --series-5: #199e70;
+      --series-6: #d95926;
+      --series-7: #9085e9;
+      --series-8: #e66767;
+      --series-9: #9ec5f4;
+      --series-10: #b98a54;
+      --series-etc: #c3c2b7;
+    }
+  }
+  :root[data-theme="dark"] .viz-root {
+    color-scheme: dark;
+    --surface-1:      #1a1a19;
+    --page-plane:     #0d0d0d;
+    --text-primary:   #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted:     #898781;
+    --gridline:       #2c2c2a;
+    --border:         rgba(255,255,255,0.10);
+    --series-1: #3987e5;
+    --series-2: #008300;
+    --series-3: #d55181;
+    --series-4: #c98500;
+    --series-5: #199e70;
+    --series-6: #d95926;
+    --series-7: #9085e9;
+    --series-8: #e66767;
+    --series-9: #9ec5f4;
+    --series-10: #b98a54;
+    --series-etc: #c3c2b7;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  .viz-root {
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    padding: 32px 20px 64px;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1160px; margin: 0 auto; }
+
+  h1 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .subtitle { color: var(--text-secondary); font-size: 14px; margin: 0 0 28px; }
+
+  /* Search */
+  .search-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 28px;
+    position: relative;
+  }
+  .search-label { font-size: 13px; color: var(--text-secondary); margin: 0 0 8px; }
+  .search-input-row { position: relative; }
+  input#country-search {
+    width: 100%;
+    font-size: 16px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--gridline);
+    background: var(--page-plane);
+    color: var(--text-primary);
+    font-family: inherit;
+  }
+  input#country-search:focus { outline: 2px solid var(--series-1); outline-offset: 1px; }
+  .suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 10;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  }
+  .suggestions button {
+    display: block; width: 100%; text-align: left;
+    padding: 8px 14px; font-size: 14px;
+    background: none; border: none; color: var(--text-primary);
+    cursor: pointer; font-family: inherit;
+  }
+  .suggestions button:hover, .suggestions button:focus { background: var(--gridline); }
+
+  .result-row { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .result-tile {
+    flex: 1 1 200px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .result-tile .label { font-size: 12px; color: var(--text-secondary); margin: 0 0 6px; }
+  .result-tile .value { font-size: 24px; font-weight: 600; margin: 0; }
+  .result-tile .sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .empty-hint { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Donut grid */
+  .donut-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+  }
+  .donut-card {
+    background: var(--surface-1);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .donut-card h2 { font-size: 15px; font-weight: 600; margin: 0 0 2px; }
+  .donut-card .desc { font-size: 12px; color: var(--text-secondary); margin: 0 0 12px; }
+  .donut-svg-wrap { position: relative; display: flex; justify-content: center; }
+  .donut-center-total { font-size: 11px; fill: var(--text-muted); }
+  .donut-center-value { font-size: 20px; font-weight: 600; fill: var(--text-primary); }
+  path.arc { cursor: pointer; transition: filter 0.15s ease; }
+  path.arc:hover, path.arc:focus { filter: brightness(1.08); outline: none; }
+
+  .legend { list-style: none; margin: 14px 0 0; padding: 0; font-size: 12px; }
+  .legend li { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .legend .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .legend .name { color: var(--text-primary); flex: 1; }
+  .legend .val { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: var(--text-primary);
+    color: var(--surface-1);
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.1s ease;
+    max-width: 220px;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .t-value { font-weight: 700; }
+  .tooltip .t-name { opacity: 0.85; }
+
+  .table-toggle {
+    margin-top: 10px; font-size: 12px; color: var(--series-1);
+    background: none; border: none; cursor: pointer; padding: 0; font-family: inherit;
+    text-decoration: underline;
+  }
+  table.rank-table {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; display: none;
+  }
+  table.rank-table.show { display: table; }
+  table.rank-table th, table.rank-table td {
+    text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--gridline);
+  }
+  table.rank-table td:last-child, table.rank-table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+
+  footer { margin-top: 32px; font-size: 12px; color: var(--text-muted); }
+</style>
+
+<div class="viz-root">
+  <div class="wrap">
+    <h1>넷플릭스 국가별 컨텐츠 제작 순위</h1>
+    <p class="subtitle">netflix_titles.csv 기준 · 단독제작 / 공동제작 전체 인정 / 공동제작 분할 인정 세 가지 방식으로 집계</p>
+
+    <div class="search-card">
+      <p class="search-label">국가명을 영어로 검색하세요 (예: South Korea)</p>
+      <div class="search-input-row">
+        <input id="country-search" type="text" autocomplete="off" placeholder="Country name…" />
+        <div id="suggestions" class="suggestions" hidden></div>
+      </div>
+      <div id="result-area"></div>
+    </div>
+
+    <div class="donut-grid">
+      <div class="donut-card">
+        <h2>① 단독제작만 인정</h2>
+        <p class="desc">공동제작 컨텐츠는 집계에서 제외</p>
+        <div class="donut-svg-wrap" id="donut-solo"></div>
+        <ul class="legend" id="legend-solo"></ul>
+        <button class="table-toggle" data-target="table-solo">표로 보기</button>
+        <table class="rank-table" id="table-solo"><thead><tr><th>순위</th><th>국가</th><th>편수</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div class="donut-card">
+        <h2>② 공동제작 전체 인정</h2>
+        <p class="desc">공동제작도 참여 국가마다 1편으로 인정</p>
+        <div class="donut-svg-wrap" id="donut-full"></div>
+        <ul class="legend" id="legend-full"></ul>
+        <button class="table-toggle" data-target="table-full">표로 보기</button>
+        <table class="rank-table" id="table-full"><thead><tr><th>순위</th><th>국가</th><th>편수</th></tr></thead><tbody></tbody></table>
+      </div>
+
+      <div class="donut-card">
+        <h2>③ 공동제작 분할 인정</h2>
+        <p class="desc">공동제작은 참여 국가 수만큼 1/n씩 나누어 인정</p>
+        <div class="donut-svg-wrap" id="donut-fractional"></div>
+        <ul class="legend" id="legend-fractional"></ul>
+        <button class="table-toggle" data-target="table-fractional">표로 보기</button>
+        <table class="rank-table" id="table-fractional"><thead><tr><th>순위</th><th>국가</th><th>편수</th></tr></thead><tbody></tbody></table>
+      </div>
+    </div>
+
+    <footer>도넛 차트는 순위 1~10위를 표시하고, 11번째 조각(연회색)은 그 외 모든 국가의 합계입니다.</footer>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"><span class="t-value"></span><br /><span class="t-name"></span></div>
+
+<script id="ranking-data" type="application/json">
+{"solo": {"ranks": {"United States": {"rank": 1, "value": 2556.0}, "India": {"rank": 2, "value": 923.0}, "United Kingdom": {"rank": 3, "value": 398.0}, "Japan": {"rank": 4, "value": 226.0}, "South Korea": {"rank": 5, "value": 183.0}, "Canada": {"rank": 6, "value": 177.0}, "Spain": {"rank": 7, "value": 134.0}, "France": {"rank": 8, "value": 115.0}, "Egypt": {"rank": 9, "value": 101.0}, "Turkey": {"rank": 10, "value": 100.0}, "Mexico": {"rank": 11, "value": 100.0}, "Australia": {"rank": 12, "value": 83.0}, "Taiwan": {"rank": 13, "value": 78.0}, "Brazil": {"rank": 14, "value": 72.0}, "Philippines": {"rank": 15, "value": 71.0}, "Indonesia": {"rank": 16, "value": 70.0}, "Nigeria": {"rank": 17, "value": 70.0}, "Germany": {"rank": 18, "value": 61.0}, "China": {"rank": 19, "value": 57.0}, "Thailand": {"rank": 20, "value": 57.0}, "Hong Kong": {"rank": 21, "value": 52.0}, "Argentina": {"rank": 22, "value": 50.0}, "Italy": {"rank": 23, "value": 40.0}, "Colombia": {"rank": 24, "value": 31.0}, "South Africa": {"rank": 25, "value": 25.0}, "Singapore": {"rank": 26, "value": 23.0}, "Malaysia": {"rank": 27, "value": 22.0}, "Poland": {"rank": 28, "value": 21.0}, "Pakistan": {"rank": 29, "value": 18.0}, "Netherlands": {"rank": 30, "value": 16.0}, "Russia": {"rank": 31, "value": 16.0}, "Chile": {"rank": 32, "value": 14.0}, "Lebanon": {"rank": 33, "value": 14.0}, "Denmark": {"rank": 34, "value": 13.0}, "United Arab Emirates": {"rank": 35, "value": 12.0}, "Israel": {"rank": 36, "value": 12.0}, "New Zealand": {"rank": 37, "value": 11.0}, "Ireland": {"rank": 38, "value": 11.0}, "Norway": {"rank": 39, "value": 11.0}, "Sweden": {"rank": 40, "value": 10.0}, "Belgium": {"rank": 41, "value": 8.0}, "Saudi Arabia": {"rank": 42, "value": 7.0}, "Kuwait": {"rank": 43, "value": 6.0}, "Romania": {"rank": 44, "value": 6.0}, "Vietnam": {"rank": 45, "value": 5.0}, "Hungary": {"rank": 46, "value": 4.0}, "Peru": {"rank": 47, "value": 4.0}, "Austria": {"rank": 48, "value": 4.0}, "Iceland": {"rank": 49, "value": 4.0}, "Uruguay": {"rank": 50, "value": 3.0}, "Ghana": {"rank": 51, "value": 3.0}, "Kenya": {"rank": 52, "value": 2.0}, "Bangladesh": {"rank": 53, "value": 2.0}, "Ukraine": {"rank": 54, "value": 2.0}, "Switzerland": {"rank": 55, "value": 2.0}, "Belarus": {"rank": 56, "value": 1.0}, "Cambodia": {"rank": 57, "value": 1.0}, "Croatia": {"rank": 58, "value": 1.0}, "Cyprus": {"rank": 59, "value": 1.0}, "Finland": {"rank": 60, "value": 1.0}, "Georgia": {"rank": 61, "value": 1.0}, "Jordan": {"rank": 62, "value": 1.0}, "Guatemala": {"rank": 63, "value": 1.0}, "Bulgaria": {"rank": 64, "value": 1.0}, "Namibia": {"rank": 65, "value": 1.0}, "Senegal": {"rank": 66, "value": 1.0}, "Venezuela": {"rank": 67, "value": 1.0}, "West Germany": {"rank": 68, "value": 1.0}, "Zimbabwe": {"rank": 69, "value": 1.0}}, "top10": [{"name": "United States", "value": 2556.0}, {"name": "India", "value": 923.0}, {"name": "United Kingdom", "value": 398.0}, {"name": "Japan", "value": 226.0}, {"name": "South Korea", "value": 183.0}, {"name": "Canada", "value": 177.0}, {"name": "Spain", "value": 134.0}, {"name": "France", "value": 115.0}, {"name": "Egypt", "value": 101.0}, {"name": "Turkey", "value": 100.0}], "etcValue": 1217.0, "etcCount": 59, "total": 69}, "full": {"ranks": {"United States": {"rank": 1, "value": 3297.0}, "India": {"rank": 2, "value": 990.0}, "United Kingdom": {"rank": 3, "value": 723.0}, "Canada": {"rank": 4, "value": 412.0}, "France": {"rank": 5, "value": 349.0}, "Japan": {"rank": 6, "value": 287.0}, "Spain": {"rank": 7, "value": 215.0}, "South Korea": {"rank": 8, "value": 212.0}, "Germany": {"rank": 9, "value": 199.0}, "Mexico": {"rank": 10, "value": 154.0}, "China": {"rank": 11, "value": 147.0}, "Australia": {"rank": 12, "value": 144.0}, "Egypt": {"rank": 13, "value": 110.0}, "Turkey": {"rank": 14, "value": 108.0}, "Hong Kong": {"rank": 15, "value": 102.0}, "Italy": {"rank": 16, "value": 90.0}, "Brazil": {"rank": 17, "value": 88.0}, "Belgium": {"rank": 18, "value": 85.0}, "Taiwan": {"rank": 19, "value": 85.0}, "Argentina": {"rank": 20, "value": 82.0}, "Indonesia": {"rank": 21, "value": 80.0}, "Philippines": {"rank": 22, "value": 78.0}, "Nigeria": {"rank": 23, "value": 76.0}, "Thailand": {"rank": 24, "value": 65.0}, "South Africa": {"rank": 25, "value": 54.0}, "Netherlands": {"rank": 26, "value": 45.0}, "Colombia": {"rank": 27, "value": 45.0}, "Denmark": {"rank": 28, "value": 44.0}, "Ireland": {"rank": 29, "value": 40.0}, "Sweden": {"rank": 30, "value": 39.0}, "Singapore": {"rank": 31, "value": 39.0}, "Poland": {"rank": 32, "value": 36.0}, "United Arab Emirates": {"rank": 33, "value": 34.0}, "Norway": {"rank": 34, "value": 29.0}, "New Zealand": {"rank": 35, "value": 28.0}, "Russia": {"rank": 36, "value": 27.0}, "Lebanon": {"rank": 37, "value": 26.0}, "Chile": {"rank": 38, "value": 26.0}, "Israel": {"rank": 39, "value": 26.0}, "Malaysia": {"rank": 40, "value": 26.0}, "Pakistan": {"rank": 41, "value": 24.0}, "Czech Republic": {"rank": 42, "value": 20.0}, "Switzerland": {"rank": 43, "value": 17.0}, "Uruguay": {"rank": 44, "value": 14.0}, "Romania": {"rank": 45, "value": 12.0}, "Finland": {"rank": 46, "value": 11.0}, "Austria": {"rank": 47, "value": 11.0}, "Luxembourg": {"rank": 48, "value": 11.0}, "Greece": {"rank": 49, "value": 10.0}, "Saudi Arabia": {"rank": 50, "value": 10.0}, "Peru": {"rank": 51, "value": 10.0}, "Hungary": {"rank": 52, "value": 9.0}, "Iceland": {"rank": 53, "value": 9.0}, "Bulgaria": {"rank": 54, "value": 9.0}, "Jordan": {"rank": 55, "value": 8.0}, "Serbia": {"rank": 56, "value": 7.0}, "Kuwait": {"rank": 57, "value": 7.0}, "Qatar": {"rank": 58, "value": 7.0}, "Morocco": {"rank": 59, "value": 6.0}, "West Germany": {"rank": 60, "value": 5.0}, "Vietnam": {"rank": 61, "value": 5.0}, "Kenya": {"rank": 62, "value": 5.0}, "Cambodia": {"rank": 63, "value": 5.0}, "Iran": {"rank": 64, "value": 4.0}, "Portugal": {"rank": 65, "value": 4.0}, "Ghana": {"rank": 66, "value": 4.0}, "Croatia": {"rank": 67, "value": 4.0}, "Zimbabwe": {"rank": 68, "value": 3.0}, "Senegal": {"rank": 69, "value": 3.0}, "Slovenia": {"rank": 70, "value": 3.0}, "Malta": {"rank": 71, "value": 3.0}, "Soviet Union": {"rank": 72, "value": 3.0}, "Venezuela": {"rank": 73, "value": 3.0}, "Ukraine": {"rank": 74, "value": 3.0}, "Bangladesh": {"rank": 75, "value": 3.0}, "Cayman Islands": {"rank": 76, "value": 2.0}, "Iraq": {"rank": 77, "value": 2.0}, "Georgia": {"rank": 78, "value": 2.0}, "Guatemala": {"rank": 79, "value": 2.0}, "Algeria": {"rank": 80, "value": 2.0}, "Nepal": {"rank": 81, "value": 2.0}, "Namibia": {"rank": 82, "value": 2.0}, "Bahamas": {"rank": 83, "value": 1.0}, "Bermuda": {"rank": 84, "value": 1.0}, "Botswana": {"rank": 85, "value": 1.0}, "Kazakhstan": {"rank": 86, "value": 1.0}, "Jamaica": {"rank": 87, "value": 1.0}, "East Germany": {"rank": 88, "value": 1.0}, "Cuba": {"rank": 89, "value": 1.0}, "Dominican Republic": {"rank": 90, "value": 1.0}, "Cyprus": {"rank": 91, "value": 1.0}, "Ecuador": {"rank": 92, "value": 1.0}, "Afghanistan": {"rank": 93, "value": 1.0}, "Angola": {"rank": 94, "value": 1.0}, "Albania": {"rank": 95, "value": 1.0}, "Armenia": {"rank": 96, "value": 1.0}, "Azerbaijan": {"rank": 97, "value": 1.0}, "Belarus": {"rank": 98, "value": 1.0}, "Liechtenstein": {"rank": 99, "value": 1.0}, "Latvia": {"rank": 100, "value": 1.0}, "Lithuania": {"rank": 101, "value": 1.0}, "Puerto Rico": {"rank": 102, "value": 1.0}, "Paraguay": {"rank": 103, "value": 1.0}, "Nicaragua": {"rank": 104, "value": 1.0}, "Panama": {"rank": 105, "value": 1.0}, "Malawi": {"rank": 106, "value": 1.0}, "Mauritius": {"rank": 107, "value": 1.0}, "Montenegro": {"rank": 108, "value": 1.0}, "Mongolia": {"rank": 109, "value": 1.0}, "Sudan": {"rank": 110, "value": 1.0}, "Sri Lanka": {"rank": 111, "value": 1.0}, "Somalia": {"rank": 112, "value": 1.0}, "Slovakia": {"rank": 113, "value": 1.0}, "Samoa": {"rank": 114, "value": 1.0}, "Syria": {"rank": 115, "value": 1.0}, "Uganda": {"rank": 116, "value": 1.0}, "Vatican City": {"rank": 117, "value": 1.0}}, "top10": [{"name": "United States", "value": 3297.0}, {"name": "India", "value": 990.0}, {"name": "United Kingdom", "value": 723.0}, {"name": "Canada", "value": 412.0}, {"name": "France", "value": 349.0}, {"name": "Japan", "value": 287.0}, {"name": "Spain", "value": 215.0}, {"name": "South Korea", "value": 212.0}, {"name": "Germany", "value": 199.0}, {"name": "Mexico", "value": 154.0}], "etcValue": 2225.0, "etcCount": 107, "total": 117}, "fractional": {"ranks": {"United States": {"rank": 1, "value": 2869.4393}, "India": {"rank": 2, "value": 951.6024}, "United Kingdom": {"rank": 3, "value": 524.0464}, "Canada": {"rank": 4, "value": 271.8857}, "Japan": {"rank": 5, "value": 249.5095}, "France": {"rank": 6, "value": 202.6702}, "South Korea": {"rank": 7, "value": 193.8929}, "Spain": {"rank": 8, "value": 165.9}, "Mexico": {"rank": 9, "value": 123.2917}, "Germany": {"rank": 10, "value": 108.2024}, "Australia": {"rank": 11, "value": 108.0333}, "Egypt": {"rank": 12, "value": 104.8667}, "Turkey": {"rank": 13, "value": 103.75}, "China": {"rank": 14, "value": 92.469}, "Taiwan": {"rank": 15, "value": 81.0}, "Brazil": {"rank": 16, "value": 77.4}, "Hong Kong": {"rank": 17, "value": 74.7917}, "Indonesia": {"rank": 18, "value": 73.85}, "Philippines": {"rank": 19, "value": 73.4762}, "Nigeria": {"rank": 20, "value": 73.0}, "Argentina": {"rank": 21, "value": 63.3167}, "Thailand": {"rank": 22, "value": 60.2}, "Italy": {"rank": 23, "value": 58.9762}, "Belgium": {"rank": 24, "value": 36.7536}, "Colombia": {"rank": 25, "value": 36.25}, "South Africa": {"rank": 26, "value": 35.4667}, "Singapore": {"rank": 27, "value": 29.3333}, "Poland": {"rank": 28, "value": 26.5595}, "Netherlands": {"rank": 29, "value": 24.8429}, "Malaysia": {"rank": 30, "value": 23.8333}, "Denmark": {"rank": 31, "value": 22.3262}, "Ireland": {"rank": 32, "value": 21.1679}, "Pakistan": {"rank": 33, "value": 20.8333}, "Russia": {"rank": 34, "value": 20.6667}, "United Arab Emirates": {"rank": 35, "value": 20.4333}, "Sweden": {"rank": 36, "value": 19.5}, "Chile": {"rank": 37, "value": 18.95}, "Lebanon": {"rank": 38, "value": 18.0167}, "New Zealand": {"rank": 39, "value": 17.5833}, "Norway": {"rank": 40, "value": 17.0833}, "Israel": {"rank": 41, "value": 16.4429}, "Romania": {"rank": 42, "value": 8.25}, "Czech Republic": {"rank": 43, "value": 8.1}, "Saudi Arabia": {"rank": 44, "value": 7.8667}, "Uruguay": {"rank": 45, "value": 6.9167}, "Switzerland": {"rank": 46, "value": 6.7667}, "Austria": {"rank": 47, "value": 6.6667}, "Kuwait": {"rank": 48, "value": 6.2}, "Peru": {"rank": 49, "value": 6.0333}, "Hungary": {"rank": 50, "value": 5.75}, "Iceland": {"rank": 51, "value": 5.625}, "Vietnam": {"rank": 52, "value": 5.0}, "Bulgaria": {"rank": 53, "value": 4.5833}, "Finland": {"rank": 54, "value": 4.55}, "Ghana": {"rank": 55, "value": 3.5}, "Kenya": {"rank": 56, "value": 3.2}, "Greece": {"rank": 57, "value": 3.0333}, "Jordan": {"rank": 58, "value": 2.9167}, "Luxembourg": {"rank": 59, "value": 2.7452}, "Serbia": {"rank": 60, "value": 2.5833}, "West Germany": {"rank": 61, "value": 2.5333}, "Cambodia": {"rank": 62, "value": 2.5}, "Qatar": {"rank": 63, "value": 2.35}, "Ukraine": {"rank": 64, "value": 2.3333}, "Bangladesh": {"rank": 65, "value": 2.3333}, "Morocco": {"rank": 66, "value": 2.2}, "Venezuela": {"rank": 67, "value": 2.0}, "Senegal": {"rank": 68, "value": 1.8333}, "Zimbabwe": {"rank": 69, "value": 1.7}, "Croatia": {"rank": 70, "value": 1.7}, "Iran": {"rank": 71, "value": 1.5833}, "Guatemala": {"rank": 72, "value": 1.5}, "Soviet Union": {"rank": 73, "value": 1.5}, "Portugal": {"rank": 74, "value": 1.45}, "Georgia": {"rank": 75, "value": 1.3333}, "Namibia": {"rank": 76, "value": 1.2}, "Cyprus": {"rank": 77, "value": 1.0}, "Algeria": {"rank": 78, "value": 1.0}, "Belarus": {"rank": 79, "value": 1.0}, "Nepal": {"rank": 80, "value": 0.8333}, "Malta": {"rank": 81, "value": 0.8333}, "Iraq": {"rank": 82, "value": 0.8333}, "Slovenia": {"rank": 83, "value": 0.7833}, "Cayman Islands": {"rank": 84, "value": 0.5833}, "Jamaica": {"rank": 85, "value": 0.5}, "Slovakia": {"rank": 86, "value": 0.5}, "Sri Lanka": {"rank": 87, "value": 0.5}, "Nicaragua": {"rank": 88, "value": 0.5}, "Paraguay": {"rank": 89, "value": 0.5}, "Cuba": {"rank": 90, "value": 0.5}, "Lithuania": {"rank": 91, "value": 0.5}, "Malawi": {"rank": 92, "value": 0.5}, "Mauritius": {"rank": 93, "value": 0.5}, "Botswana": {"rank": 94, "value": 0.5}, "Azerbaijan": {"rank": 95, "value": 0.5}, "Angola": {"rank": 96, "value": 0.5}, "Kazakhstan": {"rank": 97, "value": 0.5}, "East Germany": {"rank": 98, "value": 0.3333}, "Dominican Republic": {"rank": 99, "value": 0.3333}, "Ecuador": {"rank": 100, "value": 0.3333}, "Bermuda": {"rank": 101, "value": 0.3333}, "Puerto Rico": {"rank": 102, "value": 0.3333}, "Montenegro": {"rank": 103, "value": 0.25}, "Panama": {"rank": 104, "value": 0.25}, "Albania": {"rank": 105, "value": 0.25}, "Samoa": {"rank": 106, "value": 0.25}, "Liechtenstein": {"rank": 107, "value": 0.25}, "Afghanistan": {"rank": 108, "value": 0.2}, "Bahamas": {"rank": 109, "value": 0.2}, "Uganda": {"rank": 110, "value": 0.2}, "Latvia": {"rank": 111, "value": 0.2}, "Sudan": {"rank": 112, "value": 0.2}, "Somalia": {"rank": 113, "value": 0.2}, "Vatican City": {"rank": 114, "value": 0.2}, "Syria": {"rank": 115, "value": 0.2}, "Armenia": {"rank": 116, "value": 0.0833}, "Mongolia": {"rank": 117, "value": 0.0833}}, "top10": [{"name": "United States", "value": 2869.4393}, {"name": "India", "value": 951.6024}, {"name": "United Kingdom", "value": 524.0464}, {"name": "Canada", "value": 271.8857}, {"name": "Japan", "value": 249.5095}, {"name": "France", "value": 202.6702}, {"name": "South Korea", "value": 193.8929}, {"name": "Spain", "value": 165.9}, {"name": "Mexico", "value": 123.2917}, {"name": "Germany", "value": 108.2024}], "etcValue": 1619.5595, "etcCount": 107, "total": 117}}
+</script>
+
+<script>
+(function () {
+  var DATA = JSON.parse(document.getElementById('ranking-data').textContent);
+  var SYSTEMS = [
+    { key: 'solo', label: '① 단독제작만 인정', donutId: 'donut-solo', legendId: 'legend-solo', tableId: 'table-solo' },
+    { key: 'full', label: '② 공동제작 전체 인정', donutId: 'donut-full', legendId: 'legend-full', tableId: 'table-full' },
+    { key: 'fractional', label: '③ 공동제작 분할 인정', donutId: 'donut-fractional', legendId: 'legend-fractional', tableId: 'table-fractional' }
+  ];
+  var COLOR_VARS = ['--series-1', '--series-2', '--series-3', '--series-4', '--series-5',
+                     '--series-6', '--series-7', '--series-8', '--series-9', '--series-10'];
+
+  function cssVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  function fmt(n) {
+    var rounded = Math.round(n * 100) / 100;
+    return rounded.toLocaleString('en-US', { maximumFractionDigits: 2 });
+  }
+
+  function polarToCartesian(cx, cy, r, angleDeg) {
+    var rad = (angleDeg - 90) * Math.PI / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  }
+
+  function annularSectorPath(cx, cy, rOuter, rInner, startAngle, endAngle) {
+    var startOuter = polarToCartesian(cx, cy, rOuter, endAngle);
+    var endOuter = polarToCartesian(cx, cy, rOuter, startAngle);
+    var startInner = polarToCartesian(cx, cy, rInner, endAngle);
+    var endInner = polarToCartesian(cx, cy, rInner, startAngle);
+    var largeArc = endAngle - startAngle > 180 ? 1 : 0;
+    return [
+      'M', startOuter.x, startOuter.y,
+      'A', rOuter, rOuter, 0, largeArc, 0, endOuter.x, endOuter.y,
+      'L', endInner.x, endInner.y,
+      'A', rInner, rInner, 0, largeArc, 1, startInner.x, startInner.y,
+      'Z'
+    ].join(' ');
+  }
+
+  var tooltip = document.getElementById('tooltip');
+  function showTooltip(evt, valueText, nameText) {
+    tooltip.querySelector('.t-value').textContent = valueText;
+    tooltip.querySelector('.t-name').textContent = nameText;
+    tooltip.classList.add('show');
+    moveTooltip(evt);
+  }
+  function moveTooltip(evt) {
+    var x = evt.clientX, y = evt.clientY;
+    tooltip.style.left = Math.min(x + 14, window.innerWidth - 240) + 'px';
+    tooltip.style.top = Math.max(y - 40, 8) + 'px';
+  }
+  function hideTooltip() { tooltip.classList.remove('show'); }
+
+  function buildDonut(system) {
+    var d = DATA[system.key];
+    var slices = d.top10.map(function (item, i) {
+      return { name: item.name, value: item.value, color: 'var(' + COLOR_VARS[i] + ')' };
+    });
+    if (d.etcCount > 0) {
+      slices.push({ name: '기타 (' + d.etcCount + '개국)', value: d.etcValue, color: 'var(--series-etc)' });
+    }
+    var total = slices.reduce(function (s, x) { return s + x.value; }, 0);
+
+    var size = 260, cx = size / 2, cy = size / 2, rOuter = 110, rInner = 66;
+    var gapDeg = (2 / (2 * Math.PI * rOuter)) * 360;
+
+    var svgNS = 'http://www.w3.org/2000/svg';
+    var svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', system.label + ' 도넛 차트');
+
+    var angle = 0;
+    slices.forEach(function (slice) {
+      var sweep = (slice.value / total) * 360;
+      var start = angle + gapDeg / 2;
+      var end = angle + sweep - gapDeg / 2;
+      if (end < start) end = start;
+      var path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', annularSectorPath(cx, cy, rOuter, rInner, start, end));
+      path.setAttribute('fill', slice.color);
+      path.setAttribute('class', 'arc');
+      path.setAttribute('tabindex', '0');
+      var pct = ((slice.value / total) * 100).toFixed(1) + '%';
+      path.addEventListener('pointermove', function (evt) { showTooltip(evt, fmt(slice.value) + '편 (' + pct + ')', slice.name); });
+      path.addEventListener('pointerleave', hideTooltip);
+      path.addEventListener('focus', function (evt) { showTooltip(evt, fmt(slice.value) + '편 (' + pct + ')', slice.name); });
+      path.addEventListener('blur', hideTooltip);
+      svg.appendChild(path);
+      angle += sweep;
+    });
+
+    var totalText1 = document.createElementNS(svgNS, 'text');
+    totalText1.setAttribute('x', cx); totalText1.setAttribute('y', cy - 6);
+    totalText1.setAttribute('text-anchor', 'middle');
+    totalText1.setAttribute('class', 'donut-center-total');
+    totalText1.textContent = '총 편수';
+    svg.appendChild(totalText1);
+
+    var totalText2 = document.createElementNS(svgNS, 'text');
+    totalText2.setAttribute('x', cx); totalText2.setAttribute('y', cy + 16);
+    totalText2.setAttribute('text-anchor', 'middle');
+    totalText2.setAttribute('class', 'donut-center-value');
+    totalText2.textContent = fmt(total);
+    svg.appendChild(totalText2);
+
+    var container = document.getElementById(system.donutId);
+    container.innerHTML = '';
+    container.appendChild(svg);
+
+    var legend = document.getElementById(system.legendId);
+    legend.innerHTML = '';
+    slices.forEach(function (slice) {
+      var li = document.createElement('li');
+      var sw = document.createElement('span');
+      sw.className = 'swatch';
+      sw.style.background = slice.color;
+      var name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = slice.name;
+      var val = document.createElement('span');
+      val.className = 'val';
+      val.textContent = fmt(slice.value);
+      li.appendChild(sw); li.appendChild(name); li.appendChild(val);
+      legend.appendChild(li);
+    });
+
+    var tbody = document.querySelector('#' + system.tableId + ' tbody');
+    tbody.innerHTML = '';
+    Object.keys(d.ranks).sort(function (a, b) { return d.ranks[a].rank - d.ranks[b].rank; }).forEach(function (name) {
+      var row = d.ranks[name];
+      var tr = document.createElement('tr');
+      var tdRank = document.createElement('td'); tdRank.textContent = row.rank;
+      var tdName = document.createElement('td'); tdName.textContent = name;
+      var tdVal = document.createElement('td'); tdVal.textContent = fmt(row.value);
+      tr.appendChild(tdRank); tr.appendChild(tdName); tr.appendChild(tdVal);
+      tbody.appendChild(tr);
+    });
+  }
+
+  SYSTEMS.forEach(buildDonut);
+
+  document.querySelectorAll('.table-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var table = document.getElementById(btn.dataset.target);
+      table.classList.toggle('show');
+      btn.textContent = table.classList.contains('show') ? '표 닫기' : '표로 보기';
+    });
+  });
+
+  var allCountries = Array.from(new Set(
+    SYSTEMS.reduce(function (acc, s) { return acc.concat(Object.keys(DATA[s.key].ranks)); }, [])
+  )).sort();
+
+  var input = document.getElementById('country-search');
+  var suggestionsBox = document.getElementById('suggestions');
+  var resultArea = document.getElementById('result-area');
+
+  function renderResult(name) {
+    resultArea.innerHTML = '';
+    var row = document.createElement('div');
+    row.className = 'result-row';
+    SYSTEMS.forEach(function (s) {
+      var d = DATA[s.key];
+      var tile = document.createElement('div');
+      tile.className = 'result-tile';
+      var label = document.createElement('p');
+      label.className = 'label';
+      label.textContent = s.label;
+      tile.appendChild(label);
+      if (d.ranks[name]) {
+        var value = document.createElement('p');
+        value.className = 'value';
+        value.textContent = d.ranks[name].rank + '위';
+        var sub = document.createElement('p');
+        sub.className = 'sub';
+        sub.textContent = fmt(d.ranks[name].value) + '편 · 전체 ' + d.total + '개국 중';
+        tile.appendChild(value); tile.appendChild(sub);
+      } else {
+        var value2 = document.createElement('p');
+        value2.className = 'value';
+        value2.textContent = '해당 없음';
+        tile.appendChild(value2);
+      }
+      row.appendChild(tile);
+    });
+    resultArea.appendChild(row);
+  }
+
+  function renderSuggestions(query) {
+    var q = query.trim().toLowerCase();
+    if (!q) { suggestionsBox.hidden = true; suggestionsBox.innerHTML = ''; return; }
+    var matches = allCountries.filter(function (c) { return c.toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+    suggestionsBox.innerHTML = '';
+    if (matches.length === 0) { suggestionsBox.hidden = true; return; }
+    matches.forEach(function (name) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = name;
+      btn.addEventListener('click', function () {
+        input.value = name;
+        suggestionsBox.hidden = true;
+        renderResult(name);
+      });
+      suggestionsBox.appendChild(btn);
+    });
+    suggestionsBox.hidden = false;
+  }
+
+  input.addEventListener('input', function () { renderSuggestions(input.value); });
+  input.addEventListener('keydown', function (evt) {
+    if (evt.key === 'Enter') {
+      var q = input.value.trim().toLowerCase();
+      var exact = allCountries.find(function (c) { return c.toLowerCase() === q; });
+      var match = exact || allCountries.find(function (c) { return c.toLowerCase().indexOf(q) !== -1; });
+      if (match) { input.value = match; renderResult(match); }
+      suggestionsBox.hidden = true;
+    }
+  });
+  document.addEventListener('click', function (evt) {
+    if (!evt.target.closest('.search-input-row')) suggestionsBox.hidden = true;
+  });
+})();
+</script>
